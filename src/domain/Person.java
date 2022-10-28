@@ -77,9 +77,11 @@ public class Person extends Model {
     public String toString() {
         return "Person{" + "name=" + name + ", lastname=" + lastname + ", city=" + city + '}';
     }
+    
+    // Database setup
 
     @Override
-    protected ModelRepository getRepository() {
+    public ModelRepository getRepository() {
         return new PersonModelRepository(this);
     }
 

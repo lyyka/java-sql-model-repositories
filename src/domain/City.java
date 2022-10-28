@@ -32,5 +32,4 @@ public class City {
     public String toString() {
         return "City[" + "zipCode=" + zipCode + ", name=" + name + ']';
     }
-    
 }

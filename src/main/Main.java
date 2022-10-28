@@ -1,28 +1,16 @@
 package main;
 
 import database.Model;
-import java.util.Date;
-import domain.City;
-import domain.Gender;
 import domain.Person;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-
-        City beograd = new City(11000L, "Beograd");
-
-        Model person = new Person(
-                "Test",
-                "Testic",
-                Gender.MUSKI,
-                beograd,
-                new Date(),
-                true
-        );
+        List<Model> models = (new Person()).all();
         
-        person.save();
-        
-        System.out.println((new Person()).findById(1L));
+        for(Model model : models) {
+//            System.out.println(model);
+            model.delete();
+        }
     }
-    
 }

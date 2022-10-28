@@ -11,5 +11,5 @@ public interface IRepository {
     
     public void update();
     
-    public void delete();
+    public void deleteById(Long id);
 }

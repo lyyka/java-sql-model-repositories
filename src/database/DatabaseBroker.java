@@ -11,8 +11,7 @@ import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.util.List;
 import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
 
 public class DatabaseBroker {
     private Connection connection;
@@ -110,11 +109,12 @@ public class DatabaseBroker {
      * @param set
      * @return 
      */
-    private Map<String, Object> currentResultSetRowToList(ResultSet set)
+    private DatabaseBrokerResultRow currentResultSetRowToDatabaseBrokerRow(ResultSet set)
     {
-        Map<String, Object> result = new HashMap<>();
+        DatabaseBrokerResultRow result = new DatabaseBrokerResultRow();
         
         try {
+            // Get row meta data to fetch column names and count
             ResultSetMetaData resultSetMetaData = set.getMetaData();
             final int columnCount = resultSetMetaData.getColumnCount();
 
@@ -134,7 +134,7 @@ public class DatabaseBroker {
      * @param query
      * @param parameters 
      */
-    public void insert(String query, List<Object> parameters) {
+    public void executeUpdate(String query, List<Object> parameters) {
         if(!isActive()) {
             connect();
         }
@@ -163,7 +163,7 @@ public class DatabaseBroker {
      * @param parameters
      * @return 
      */
-    public List<Map<String, Object>> getAllResults(String query, List<Object> parameters) {
+    public List<DatabaseBrokerResultRow> getAllResults(String query, List<Object> parameters) {
         if(!isActive()) {
             connect();
         } 
@@ -171,13 +171,13 @@ public class DatabaseBroker {
         PreparedStatement statement = this.getPreparedStatement(query);
         bindValuesToStatement(statement, parameters);
         
-        List<Map<String, Object>> response = null;
+        List<DatabaseBrokerResultRow> response = new ArrayList<>();
         
         try {            
             ResultSet set = statement.executeQuery();
             
             while(set.next()) {
-                response.add(currentResultSetRowToList(set));
+                response.add(currentResultSetRowToDatabaseBrokerRow(set));
             }
             
             set.close();
@@ -201,7 +201,7 @@ public class DatabaseBroker {
      * @param parameters
      * @return 
      */
-    public Map<String, Object> getFirstResult(String query, List<Object> parameters) {
+    public DatabaseBrokerResultRow getFirstResult(String query, List<Object> parameters) {
         if(!isActive()) {
             connect();
         } 
@@ -209,13 +209,13 @@ public class DatabaseBroker {
         PreparedStatement statement = this.getPreparedStatement(query);
         bindValuesToStatement(statement, parameters);
         
-        Map<String, Object> response = null;
+        DatabaseBrokerResultRow response = null;
         
         try {            
             ResultSet set = statement.executeQuery();
             
             if(set.next()) {
-                response = currentResultSetRowToList(set);
+                response = currentResultSetRowToDatabaseBrokerRow(set);
             }
             
             set.close();

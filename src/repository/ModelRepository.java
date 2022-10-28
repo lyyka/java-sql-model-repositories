@@ -1,6 +1,7 @@
 package repository;
 
 import database.DatabaseBroker;
+import database.DatabaseBrokerResultRow;
 import database.Model;
 import database.ModelAttributeValue;
 import java.math.BigInteger;
@@ -14,6 +15,8 @@ abstract public class ModelRepository<T extends Model> implements IRepository {
     
     abstract public Map<String, ModelAttributeValue> mapDatabaseFields();
     
+    abstract protected T getNewModelInstance();
+    
     public ModelRepository(T model)
     {
         this.model = model;
@@ -26,20 +29,26 @@ abstract public class ModelRepository<T extends Model> implements IRepository {
      * 
      * @param row 
      */
-    private void setModelDataFromMap(Map<String, Object> row)
+    private void setModelDataFromResultRow(T modelToFill, DatabaseBrokerResultRow row)
     {
-        Map<String, ModelAttributeValue> mapFieldNamesToValues = this.mapDatabaseFields();
+        Map<String, ModelAttributeValue> mapFieldNamesToValues = modelToFill.getRepository().mapDatabaseFields();
         
-        this.model.setId(((BigInteger) row.get(this.model.getIdColumName())).longValue());
+        // Set ID by default
+        BigInteger id = (BigInteger) row.getColumnValue(modelToFill.getIdColumName());
+        modelToFill.setId(id.longValue());
+        modelToFill.setPersisted(true);
+        
         for (Map.Entry<String,ModelAttributeValue> entry : mapFieldNamesToValues.entrySet())
         {
-            Object valueToSet = row.get(entry.getKey());
+            // Get raw value
+            Object valueToSet = row.getColumnValue(entry.getKey());
             
             // Auto-convert values to java-friendly types
             if(valueToSet instanceof java.sql.Date sqlDate) {
                 valueToSet = new java.util.Date(sqlDate.getTime());
             }
             
+            // Call a setter of `ModelAttributeValue`
             entry.getValue().set(valueToSet);          
         }
     }
@@ -54,35 +63,69 @@ abstract public class ModelRepository<T extends Model> implements IRepository {
         
         for (Map.Entry<String,ModelAttributeValue> entry : mapFieldNamesToValues.entrySet())
         {
+            // Generate columns to be inserted
             columns = columns.concat(entry.getKey() + ",");
+            
+            // Generate a `?` for each column
             values = values.concat("?,");
+            
+            // Add value for later binding
             valuesToBind.add(entry.getValue().get());
         }
         
+        // Trim the last `,` from columns & values strings
         columns = columns.substring(0, columns.length() - 1).concat(")");
         values = values.substring(0, values.length() - 1).concat(")");
         
+        // Generate the query
         String query = "insert into " + this.model.tableName() + columns + " values" + values;
     
-        this.broker.insert(query, valuesToBind);
+        // Pass to broker
+        this.broker.executeUpdate(query, valuesToBind);
     }
 
     @Override
-    public T getById(Long id) {   
+    public T getById(Long id) {
         String query = "select * from " + this.model.tableName() + " where " + this.model.getIdColumName() + " = ?";
         List<Object> params = new ArrayList<>();
         params.add(id);
         
-        Map<String, Object> row = this.broker.getFirstResult(query, params);
+        DatabaseBrokerResultRow row = this.broker.getFirstResult(query, params);
         
-        setModelDataFromMap(row);
+        setModelDataFromResultRow(this.model, row);
         
         return this.model;
     }
 
+    public List<Model> allModels() {
+        String query = "select * from " + this.model.tableName();
+        List<Object> params = new ArrayList<>();
+        List<Model> result = new ArrayList<>();
+        
+        List<DatabaseBrokerResultRow> all = this.broker.getAllResults(query, params);
+        
+        for(DatabaseBrokerResultRow row : all) {
+            T newModel = this.getNewModelInstance();
+            
+            setModelDataFromResultRow(newModel, row);
+            
+            result.add(newModel);
+        }
+        
+        return result;
+    }
+    
     @Override
-    public List<Object> all() {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public List<Object> all()
+    {
+        List<Object> res = new ArrayList<>();
+        List<Model> models = this.allModels();
+        
+        for(Model m : models) {
+            res.add(m);
+        }
+        
+        return res;
     }
 
     @Override
@@ -91,8 +134,11 @@ abstract public class ModelRepository<T extends Model> implements IRepository {
     }
 
     @Override
-    public void delete() {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void deleteById(Long id) {
+        String query = "delete from " + this.model.tableName() + " where " + this.model.getIdColumName() + " = ?";
+        List<Object> params = new ArrayList<>();
+        params.add(id);
+        
+        this.broker.executeUpdate(query, params);
     }
-    
 }

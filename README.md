@@ -17,3 +17,5 @@ By default, ID column is set as a primary key. `Model` also requires a `ModelRep
 
 ## Additional
 `ModelAttributeValue` - An interface which prompts `Object get()` and `set(Object)` methods to be implemented. It is used in concrete model repositories to enable get/set between repository and a model.
+
+`DatabaseBrokerResultRow` - An object that wraps the logic for accessing the result row. Internally, it uses a `HashMap` to reference column names to their values inside a single row. `DatabaseBroker` returns this object (or a list of them) when fetchin data back to the client.

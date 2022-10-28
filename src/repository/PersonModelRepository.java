@@ -17,6 +17,12 @@ public class PersonModelRepository extends ModelRepository<Person> {
     }
     
     @Override
+    protected Person getNewModelInstance()
+    {
+        return new Person();
+    }
+    
+    @Override
     public Map<String, ModelAttributeValue> mapDatabaseFields() {
         Map<String, ModelAttributeValue> res = new HashMap<>();
         res.put("name", new ModelAttributeValue() {
